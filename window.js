@@ -1,7 +1,7 @@
 
 // 渲染进程
 const os = require("os")
-const {ipcRenderer} = require("electron")
+const Store = require('@electron/remote').require('electron-store') // 使用remote（渲染进程单方向向主进程通信）
 const http = require('http')
 
 const option = {
@@ -18,15 +18,15 @@ const req = http.request(option,function (res) {
     res.on('data',(data)=>{
         console.log("数据为",data)
         try{
-            ipcRenderer.send('data',JSON.stringify(data))
+            let store = new Store()
+            store.set('cache-data',JSON.stringify(data))
+            console.log(JSON.parse(store.get('cache-data')),"缓存成功")
         }catch (e){
             console.log(e)
         }
     })
 })
-ipcRenderer.on('data-res',function (event,data) {
-    console.log("收到主进程返回消息",data)
-})
+
 
 req.write('');
 req.end();

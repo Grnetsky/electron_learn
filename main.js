@@ -28,9 +28,13 @@ if(winTheLock){
             webPreferences:{
                 nodeIntegration:true, //允许渲染进程调用nodejs模块
                 contextIsolation: false,
-                webviewTag:true //为了webview正常显示内容
+                webviewTag:true, //为了webview正常显示内容
+                enableRemoteModule: true //开启remote配置 以允许渲染进程使用remote模块（远程调用）
             }
         })
+        require('@electron/remote/main').initialize()
+        require("@electron/remote/main").enable(window.webContents)
+
         window.webContents.openDevTools()
         const urls = url.format({
             protocol: 'file',
