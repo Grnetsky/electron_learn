@@ -20,7 +20,7 @@ if(winTheLock){
         }
     })
 
-    function createNewWindow() {
+    function createNewWindow(url) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
         window = new BrowserWindow({
             width: 600,
@@ -32,16 +32,11 @@ if(winTheLock){
                 enableRemoteModule: true //开启remote配置 以允许渲染进程使用remote模块（远程调用）
             }
         })
-        require('@electron/remote/main').initialize()
-        require("@electron/remote/main").enable(window.webContents)
 
-        window.webContents.openDevTools()
-        const urls = url.format({
-            protocol: 'file',
-            pathname: path.join(__dirname,'index.html')
+        window.loadURL(url).then(()=>{
+            window.webContents.openDevTools()
         })
 
-        window.loadURL(urls)
         window.on("close", function () {
             window = null
         })
@@ -52,9 +47,22 @@ if(winTheLock){
     })
     // 应用准备好 主进程准备完毕
     app.on("ready", ()=>{
-        if(window === null){
-            createNewWindow()
-        }
+        // 第一个渲染进程的窗口文件路径
+        const url1 = url.format({
+            protocol: 'file',
+            pathname: path.join(__dirname,'window1/index.html')
+        })
+
+        // 第二个渲染进程的窗口文件路径
+        const url2 = url.format({
+            protocol: 'file',
+            pathname: path.join(__dirname,'window2/index.html')
+        })
+        // 创建第一个窗口
+        createNewWindow(url1)
+
+        // 创建第二个窗口
+        setTimeout(createNewWindow,2000,url2)
     })
 }else {
     app.quit() // 退出app
@@ -79,6 +87,47 @@ ipcMain.on('data',(event, data)=>{
     }catch (e) {
         console.log(e)
         event.reply('data-res','fail')
+    }
+})
 
+const messageChannelMap = {}
+
+function registMessageChannel(channel,webContentId) {
+    if(messageChannelMap[channel] !== undefined){
+        let alreadyHas = false
+        for(let i =0;i<messageChannelMap[channel][i].length;i++){
+            if(messageChannelMap[channel][i] === webContentId){
+                alreadyHas = true
+            }
+            if(!alreadyHas){
+                messageChannelMap[channel].push(webContentId)
+            }
+        }
+    }else {
+        messageChannelMap[channel] = [webContentId]
+    }
+}
+
+function getMessageChannel(channel) {
+    return messageChannelMap[channel] || []
+}
+
+// 监听注册消息事件
+ipcMain.on('registMessageChannel',(event, data)=>{
+    console.log('registMessage',data)
+    try{
+        registMessageChannel(data,event.sender.id)
+    }catch (e) {
+        console.log(e)
+    }
+})
+
+// 监听getRegisteMessage事件
+ipcMain.on('getRegistedMessage',(event, data)=>{
+    try {
+        // 触发渲染进程registedMessage，并返回contentId数据
+        event.reply('registedMessage',JSON.stringify(getMessageChannel(data)))
+    }catch (e) {
+        console.log(e)
     }
 })
