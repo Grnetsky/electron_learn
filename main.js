@@ -31,21 +31,21 @@ if(winTheLock){
             minWidth: 300, //窗口的最小宽度
             minHeight: 200, // 窗口的最小高度
             resizable: true, // 是否可以缩放窗口
+            frame:false, // 隐藏窗口标题栏，菜单栏以及边框
             parent:parent?parent:null, // 设置父窗口引用
             x: 400,
             y: 600, // 在屏幕中的位置 默认为正中间
             icon: path.join(__dirname,'logo.jpg'), // 指定标题栏图标 默认使用应用可执行文件的图片作为图标
+            transparent: true, // 设置窗口透明
             webPreferences:{
                 nodeIntegration:true, //允许渲染进程调用nodejs模块
                 contextIsolation: false,
                 webviewTag:true, //为了webview正常显示内容
-                enableRemoteModule: true //开启remote配置 以允许渲染进程使用remote模块（远程调用）
+                enableRemoteModule: true, //开启remote配置 以允许渲染进程使用remote模块（远程调用）
             }
         })
         // 开启控制台
-        window.loadURL(url).then(()=>{
-            window.webContents.openDevTools()
-        })
+        window.loadURL(url)
         // 关闭窗口 清空指针，防止内存泄露
         window.on("close", function () {
             window = null
