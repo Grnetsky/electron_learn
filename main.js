@@ -23,8 +23,13 @@ if(winTheLock){
     function createNewWindow(url) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
         let window = new BrowserWindow({
-            width: 600,
-            height: 400,
+            width: 600, // 指定窗口的宽
+            height: 400, // 指定窗口的高
+            maxWidth:1000, // 窗口的最大宽度
+            maxHeight: 800, //窗口的最大高度
+            minWidth: 300, //窗口的最小宽度
+            minHeight: 200, // 窗口的最小高度
+            resizable: true, // 是否可以缩放窗口
             webPreferences:{
                 nodeIntegration:true, //允许渲染进程调用nodejs模块
                 contextIsolation: false,
