@@ -30,6 +30,8 @@ if(winTheLock){
             minWidth: 300, //窗口的最小宽度
             minHeight: 200, // 窗口的最小高度
             resizable: true, // 是否可以缩放窗口
+            x: 400,
+            y: 600, // 在屏幕中的位置 默认为正中间
             webPreferences:{
                 nodeIntegration:true, //允许渲染进程调用nodejs模块
                 contextIsolation: false,
