@@ -5,7 +5,7 @@ const path = require('path')
 const {ipcMain} = require('electron')
 const Store = require('electron-store')
 const store = new Store()
-let window = null
+let windows = []
 
 const winTheLock = app.requestSingleInstanceLock();  //给应用加抢占琐  即使用单例模式保证同一个app只能打开一个
 
@@ -22,7 +22,7 @@ if(winTheLock){
 
     function createNewWindow(url) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
-        window = new BrowserWindow({
+        let window = new BrowserWindow({
             width: 600,
             height: 400,
             webPreferences:{
@@ -32,14 +32,15 @@ if(winTheLock){
                 enableRemoteModule: true //开启remote配置 以允许渲染进程使用remote模块（远程调用）
             }
         })
-
+        // 开启控制台
         window.loadURL(url).then(()=>{
             window.webContents.openDevTools()
         })
-
+        // 关闭窗口 清空指针，防止内存泄露
         window.on("close", function () {
             window = null
         })
+        return window
     }
     // 监听所有窗口关闭事件
     app.on('window-all-closed',()=>{
@@ -53,16 +54,18 @@ if(winTheLock){
             pathname: path.join(__dirname,'window1/index.html')
         })
 
+        windows.push(createNewWindow(url1))
+
         // 第二个渲染进程的窗口文件路径
         const url2 = url.format({
             protocol: 'file',
             pathname: path.join(__dirname,'window2/index.html')
         })
-        // 创建第一个窗口
-        createNewWindow(url1)
-
         // 创建第二个窗口
-        setTimeout(createNewWindow,2000,url2)
+        setTimeout(
+            ()=>{
+                windows.push(createNewWindow(url2))
+            },2000)
     })
 }else {
     app.quit() // 退出app
@@ -73,30 +76,29 @@ ipcMain.on('system-message',(event, args)=>{
     console.log('i am from Renderer')
 })
 ipcMain.on('devTool',(event, args)=>{
-    if(args){
-        window.webContents.openDevTools()
-    }else {
-        window.webContents.closeDevTools()
-    }})
-
-ipcMain.on('data',(event, data)=>{
-    console.log(event, data)
-    try{
-        store.set('cache-data',data)
-        event.reply('data-res','success')
-    }catch (e) {
-        console.log(e)
-        event.reply('data-res','fail')
+        if(args){
+            window.webContents.openDevTools()
+        }else {
+            window.webContents.closeDevTools()
+        }
     }
-})
+)
 
+// 消息对应的窗口引用
 const messageChannelMap = {}
 
+
+/*
+* @description 注册消息窗口 ： 消息名：[窗口列表]
+* @param channel 消息名
+* @param webContentId 窗口id
+*
+* */
 function registMessageChannel(channel,webContentId) {
-    if(messageChannelMap[channel] !== undefined){
+    if(messageChannelMap[channel] !== undefined){  // 存在该消息列表
         let alreadyHas = false
         for(let i =0;i<messageChannelMap[channel][i].length;i++){
-            if(messageChannelMap[channel][i] === webContentId){
+            if(messageChannelMap[channel][i] === webContentId){  // 判断该列表是否有该窗口id
                 alreadyHas = true
             }
             if(!alreadyHas){
@@ -104,30 +106,41 @@ function registMessageChannel(channel,webContentId) {
             }
         }
     }else {
-        messageChannelMap[channel] = [webContentId]
+        // 若不存在该消息 则创建该消息列表
+        messageChannelMap[channel] = [webContentId]  // TODO 这里似乎只能注册一个？
     }
 }
 
-function getMessageChannel(channel) {
-    return messageChannelMap[channel] || []
-}
 
 // 监听注册消息事件
-ipcMain.on('registMessageChannel',(event, data)=>{
-    console.log('registMessage',data)
+ipcMain.on('transMessage',(event, channel,data)=>{
     try{
+        // 发送数据
+    transMessage(getMessageChannel(channel),channel,data)
+    }catch (e) {
+        console.log(e)
+    }
+})
+
+ipcMain.on('registMessageChannel',(event, data)=>{
+    try{
+        // 注册
         registMessageChannel(data,event.sender.id)
     }catch (e) {
         console.log(e)
     }
 })
 
-// 监听getRegisteMessage事件
-ipcMain.on('getRegistedMessage',(event, data)=>{
-    try {
-        // 触发渲染进程registedMessage，并返回contentId数据
-        event.reply('registedMessage',JSON.stringify(getMessageChannel(data)))
-    }catch (e) {
-        console.log(e)
+function transMessage(webContents,channel,data) {
+    for(let i = 0;i<webContents.length;i++){
+        for(let j = 0 ;j<windows.length;j++){
+            if(webContents[i] === windows[i].webContents.id){
+                windows[j].webContents.send(channel,data)
+            }
+        }
     }
-})
+}
+
+function getMessageChannel(channel) {
+    return messageChannelMap[channel] || []
+}
