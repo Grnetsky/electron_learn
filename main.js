@@ -20,7 +20,7 @@ if(winTheLock){
         }
     })
 
-    function createNewWindow(url) {
+    function createNewWindow(url,parent = null) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
         let window = new BrowserWindow({
             title:'当html文件没有title标签时则显示此title', //优先级： HTML title>BrowserWindow>package.json name属性 > Electron 默认   另外还提供了setTitle方法 来动态改变窗口标题
@@ -31,8 +31,10 @@ if(winTheLock){
             minWidth: 300, //窗口的最小宽度
             minHeight: 200, // 窗口的最小高度
             resizable: true, // 是否可以缩放窗口
+            parent:parent?parent:null, // 设置父窗口引用
             x: 400,
             y: 600, // 在屏幕中的位置 默认为正中间
+            icon: path.join(__dirname,'logo.jpg'), // 指定标题栏图标 默认使用应用可执行文件的图片作为图标
             webPreferences:{
                 nodeIntegration:true, //允许渲染进程调用nodejs模块
                 contextIsolation: false,
@@ -61,8 +63,8 @@ if(winTheLock){
             protocol: 'file',
             pathname: path.join(__dirname,'window1/index.html')
         })
-
-        windows.push(createNewWindow(url1))
+        let parentWindow = createNewWindow(url1)
+        windows.push(parentWindow)
 
         // 第二个渲染进程的窗口文件路径
         const url2 = url.format({
@@ -72,7 +74,7 @@ if(winTheLock){
         // 创建第二个窗口
         setTimeout(
             ()=>{
-                windows.push(createNewWindow(url2))
+                windows.push(createNewWindow(url2,parentWindow))  // 第二个参数传入父窗口的引用 子窗口随父窗口一起移动 关闭等等
             },2000)
     })
 }else {
