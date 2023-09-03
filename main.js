@@ -23,6 +23,7 @@ if(winTheLock){
     function createNewWindow(url) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
         let window = new BrowserWindow({
+            title:'当html文件没有title标签时则显示此title', //优先级： HTML title>BrowserWindow>package.json name属性 > Electron 默认   另外还提供了setTitle方法 来动态改变窗口标题
             width: 600, // 指定窗口的宽
             height: 400, // 指定窗口的高
             maxWidth:1000, // 窗口的最大宽度
