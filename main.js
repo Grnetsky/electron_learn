@@ -36,7 +36,8 @@ if(winTheLock){
             x: 400,
             y: 600, // 在屏幕中的位置 默认为正中间
             icon: path.join(__dirname,'logo.jpg'), // 指定标题栏图标 默认使用应用可执行文件的图片作为图标
-            transparent: true, // 设置窗口透明
+            transparent: false, // 设置窗口透明
+            alwaysOnTop: true, // 是否常置于顶层
             webPreferences:{
                 nodeIntegration:true, //允许渲染进程调用nodejs模块
                 contextIsolation: false,
