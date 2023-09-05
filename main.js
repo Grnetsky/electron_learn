@@ -4,7 +4,6 @@ const url = require('url')
 const path = require('path')
 const {ipcMain} = require('electron')
 const Store = require('electron-store')
-const store = new Store()
 let windows = []
 
 const winsMap = new Map()
@@ -13,15 +12,19 @@ const winTheLock = app.requestSingleInstanceLock();  //给应用加抢占琐  �
 if(winTheLock){
     // 若app被第二次尝试打开，则弹出最先打开的，并聚焦
     app.on("second-instance", ()=>{
-        if(window){
-            if(window.isMinimizable()){
-                window.restore()
+        if(winsMap.size>0){
+            let mainWin = winsMap.get('main')
+            if(mainWin){
+                if(mainWin.isMinimizable()){
+                    mainWin.restore()
+                }
+                mainWin.focus()
             }
-            window.focus()
         }
+
     })
 
-    function createNewWindow(windowName,url) {
+    function createNewWindow(windowName,group,url) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
         let window = new BrowserWindow({
             title:'当html文件没有title标签时则显示此title', //优先级： HTML title>BrowserWindow>package.json name属性 > Electron 默认   另外还提供了setTitle方法 来动态改变窗口标题
@@ -52,22 +55,26 @@ if(winTheLock){
         window.on("close", function () {
             window = null
         })
-        winsMap.set(windowName,window)
-    }
 
-    function closeWindowByName(windowName) {
-        const window = winsMap.get(windowName)
-        if(window){
-            window.close()
-        }else{
-            console.log(`${windowName} not existed`)
+        const windowObj = {windowName,window}
+        let groupWindows = winsMap.get(group);
+        if(groupWindows){ // 存在
+            groupWindows.push(windowObj); // 放入组中
+        }else{ // 不存在
+            groupWindows = [windowObj]
         }
+        winsMap.set(group,groupWindows)
     }
 
-    function closeAllWindows() {
-        winsMap.forEach((win)=>{
-            win.close()
-        })
+    function closeWindowByGroup(group) {
+        const groupWindows = winsMap.get(group)
+        if(groupWindows){
+            for(let i = 0;i<groupWindows.length;i++){
+                groupWindows[i].window.close()
+            }
+        }else{
+            console.log(`${group} not existed`)
+        }
     }
     // 监听所有窗口关闭事件
     app.on('window-all-closed',()=>{
@@ -80,15 +87,17 @@ if(winTheLock){
             protocol: 'file',
             pathname: path.join(__dirname,'window1/index.html')
         })
-        createNewWindow('window1',url1)
+        createNewWindow('window1','main',url1)
         // 第二个渲染进程的窗口文件路径
         const url2 = url.format({
             protocol: 'file',
             pathname: path.join(__dirname,'window2/index.html')
         })
         // 创建第二个窗口
-        createNewWindow('window2',url2)
-        setTimeout(closeAllWindows,2000,)
+        createNewWindow('window2','group2',url2)
+        createNewWindow('window3','group2',url2)
+
+        setTimeout(closeWindowByGroup,2000,'group2')
         // setTimeout(closeWindowByName,2000,'window2')
     })
 }else {
