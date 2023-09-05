@@ -2,14 +2,11 @@
 const { app, BrowserWindow } = require('electron')
 const url = require('url')
 const path = require('path')
-const {ipcMain} = require('electron')
-const Store = require('electron-store')
-let windows = []
-
 const winsMap = new Map()
 const winTheLock = app.requestSingleInstanceLock();  //给应用加抢占琐  即使用单例模式保证同一个app只能打开一个
 
 if(winTheLock){
+
     // 若app被第二次尝试打开，则弹出最先打开的，并聚焦
     app.on("second-instance", ()=>{
         if(winsMap.size>0){
@@ -24,12 +21,14 @@ if(winTheLock){
 
     })
 
+    require('@electron/remote/main').initialize()
+
     function createNewWindow(windowName,group,url) {
         // 主窗口 相关设置参见 https://www.electronjs.org/zh/docs/latest/api/browser-window#new-browserwindowoptions
         let window = new BrowserWindow({
             title:'当html文件没有title标签时则显示此title', //优先级： HTML title>BrowserWindow>package.json name属性 > Electron 默认   另外还提供了setTitle方法 来动态改变窗口标题
-            width: 600, // 指定窗口的宽
-            height: 400, // 指定窗口的高
+            width: 1000, // 指定窗口的宽
+            height: 600, // 指定窗口的高
             maxWidth:1000, // 窗口的最大宽度
             maxHeight: 800, //窗口的最大高度
             minWidth: 300, //窗口的最小宽度
@@ -49,8 +48,10 @@ if(winTheLock){
                 enableRemoteModule: true, //开启remote配置 以允许渲染进程使用remote模块（远程调用）
             }
         })
+        require("@electron/remote/main").enable(window.webContents)
         // 开启控制台
-        window.loadURL(url)
+        window.loadURL(url).then(()=>{
+        })
         // 关闭窗口 清空指针，防止内存泄露
         window.on("close", function () {
             window = null

@@ -1,16 +1,47 @@
-const { ipcRenderer} = require('electron')
-ipcRenderer.on('action',(event, data)=>{
-    console.log("收到",data)
-})
+const remote = require('@electron/remote')
+$(function () {
+    const HIDDEN = 0;
+    const AMIMATING = 1;
+    const SHOWED = 2;
+    let status = SHOWED;
+    const iconElem = $("#icon");
+    const barEle = $("#bar");
 
-const main = require('@electron/remote') // 获取主线程对象
-let window = main.getCurrentWindow() // 获取当前窗口
-const el = document.querySelector("#window")
-el.addEventListener('mouseenter',()=>{
-    window.setIgnoreMouseEvents(false,) // 设置是否触发鼠标事件
+    function onIconClick() {
+        console.log(remote,'remote')
+        let curWin = remote.getCurrentWindow()
+        console.log(curWin,'curMin')
+        if(status === SHOWED){
+            barEle.animate({
+                top:'600px',
+                height:'100px',
+            },'fast',function () {
+                status = HIDDEN;
+                const position = curWin.getPosition()
+                curWin.setSize(100,100)
+                curWin.setPosition(position[0],position[1]+600)
+                iconElem.css({
+                    bottom:'auto',
+                    top:'0px'
+                })
+            })
+            status = AMIMATING
+        }else if(status === HIDDEN){
+            const position = curWin.getPosition()
+            curWin.setSize(100,700)
+            curWin.setPosition(position[0],position[1]-600)
+            iconElem.css({
+                bottom:'0px',
+                top:'auto'
+            })
+            barEle.animate({
+                top:'0px',
+                height: '700px'
+            },'fast',function () {
+                status = SHOWED;
+            })
+            status = AMIMATING;
+        }
+    }
+    iconElem.click(onIconClick)
 })
-
-el.addEventListener('mouseleave',()=>{
-    window.setIgnoreMouseEvents(true,{forward: true},) // 设置是否触发鼠标事件 forward配置项保留窗口相应鼠标的时间 mouseleave和mouseenter等
-})
-ipcRenderer.send('registMessageChannel','action')
