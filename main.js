@@ -9,6 +9,7 @@ const winTheLock = app.requestSingleInstanceLock();  //给应用加抢占琐  �
 
 console.log(process.argv)
 
+app.commandLine.appendSwitch('log-net-log','./chromiun-net-log.txt')
 function getProgressArgv() {
     const argv = {}
     process.argv.forEach(i=>{
