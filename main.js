@@ -6,8 +6,48 @@ const {ipcMain} = require('electron')
 const winsMap = new Map()
 const winTheLock = app.requestSingleInstanceLock();  //给应用加抢占琐  即使用单例模式保证同一个app只能打开一个
 
-if(winTheLock){
 
+console.log(process.argv)
+
+function getProgressArgv() {
+    const argv = {}
+    process.argv.forEach(i=>{
+        if(i.length>1){
+            const rest = i.split("=")
+            if(rest.length === 2){
+                argv[rest[0]] = rest[1]
+            }
+        }
+    })
+    return argv
+}
+function getConfig() {
+    const argv = getProgressArgv()
+    let baseConfig = 'base.config.json'
+    switch (argv.env){
+        case 'test':
+            baseConfig = 'test.config.json'
+            break
+        case 'dev':
+            baseConfig = 'dev.config.json'
+            break
+        case 'prod':
+        default:
+            baseConfig = 'prod.config.json'
+            break
+    }
+    let baseConfigs = require(path.join(__dirname,'config','base.config.json'))
+    let curConfig = require(path.join(__dirname,'config',baseConfig))
+    return Object.assign(baseConfigs,curConfig)
+}
+
+function getServerUrlEnv() {
+    let config = getConfig()
+    console.log(config,'999')
+    return `${config.serverProto}://${config.serverHost}${config.serverBasePath}`
+}
+if(winTheLock){
+    console.log(getServerUrlEnv())
     // 若app被第二次尝试打开，则弹出最先打开的，并聚焦
     app.on("second-instance", ()=>{
         if(winsMap.size>0){
@@ -52,6 +92,7 @@ if(winTheLock){
             height:700,
             frame:false,
             transparent:true,
+            alwaysOnTop:false,
             webPreferences:{
                 nodeIntegration:true,
                 contextIsolation:false,
@@ -70,8 +111,8 @@ if(winTheLock){
                 contextIsolation: false
             }
         },path.join(__dirname,'./window2/index.html'))
-        winsMap.get('barWindow').setAlwaysOnTop(true,'modal-panel')
-        winsMap.get('iconWindow').setAlwaysOnTop(true,'main-menu')
+        // winsMap.get('barWindow').setAlwaysOnTop(true,'modal-panel')
+        // winsMap.get('iconWindow').setAlwaysOnTop(true,'main-menu')
 
     })
 
